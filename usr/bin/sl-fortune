@@ -1,0 +1,95 @@
+#!/bin/sh
+# sl-fortune 0.1 "Slack Fortune"
+# Copyright (c) 2021 David Ferrone (zapwai at gmail dot com)
+# Under the GPL2 license, freely distributed this may be.
+# Requires libnotify and bsd-games (/usr/games/fortune).
+
+icon_choice=tux # tux | bob | slk
+sec=10  # Number of seconds the notification stays on the screen.
+
+notify() {
+    time=$( echo $sec)000   # Time notification stays on the screen (in ms).
+    notify-send --icon="/usr/share/pixmaps/sl-fortune-$icon_choice.png" \
+		--expire-time=$time \
+		-a 'Slack Fortune' \
+		"... Incoming Slack Transmission ..." \
+		"$( /usr/games/fortune -s)"
+}
+
+icon_update() {
+    sed "s/Icon=sl-fortune-.../Icon=sl-fortune-$1/" sl-fortune.desktop \
+	> tmpfile && mv tmpfile sl-fortune.desktop
+}
+
+print_usage(){
+    echo "Usage: sl-fortune [OPTION]"
+    echo "Notify X of a slack-ish fortune."
+    echo
+    echo "-i, --install    auto-start (with a random delay)"
+    echo "-r, --random     start with a random delay of 1 - 21 seconds"
+    echo "tux, bob, slk    change the icon (root permission required)"
+    echo
+}
+
+print_thxbob(){
+    echo 'J.R. "Bob" Dobbs is a trademark of The SubGenius Foundation, Inc.'
+    echo 'http://www.subgenius.com'
+# Bob WANTS YOU to ease the transmission of slack into your mind, body, and soul. 
+}
+
+if [ $# -gt 1 ]; then
+    print_usage
+    exit 1
+
+elif [ $# = 0 ]; then
+    notify
+
+else
+    case "$1" in
+	-i|--install)
+	    cp /usr/share/applications/sl-fortune.desktop \
+	       /home/$USER/.config/autostart
+	    cd /home/$USER/.config/autostart
+	    sed "s/bin\/sl-fortune/bin\/sl-fortune -r/" sl-fortune.desktop \
+		> tmpfile && mv tmpfile sl-fortune.desktop
+	    ;;
+	bob|tux|slk)
+	    if [ $1 = "bob" ]; then
+		print_thxbob
+	    fi
+	    
+	    if [ -e /usr/share/applications/sl-fortune.desktop ]; then
+		cd /usr/share/applications
+		icon_update "$1"
+		if [ -x /usr/bin/update-desktop-database ]; then
+		    /usr/bin/update-desktop-database -q usr/share/applications \
+						     >/dev/null 2>&1
+		fi
+	    fi
+
+	    # check every username in /home for a ~/.config .desktop file
+	    for username in $( cat /etc/passwd | grep "/home" | cut -d: -f1 )
+	    do
+		if [ -e /home/$username/.config/autostart/sl-fortune.desktop ]
+		then
+		    cd /home/$username/.config/autostart
+		    icon_update "$1"
+		fi
+	    done
+	    
+	    cd /usr/bin
+	    sed "0,/icon_choice=.../s//icon_choice=$1/" sl-fortune > tmpfile
+	    chmod +x tmpfile
+	    exec mv tmpfile sl-fortune
+	    ;;
+	-r|--random)
+	    Random_time=$((6 + $RANDOM % 20))
+	    sleep $Random_time
+	    notify
+	    ;;
+	*)
+	    print_usage
+	    exit 0
+	    ;;
+    esac
+fi

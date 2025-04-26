@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=SlackFortune
+GenericName=Slackware Fortune
+Comment=Transmission of Slack
+Keywords=fortune;slack
+Exec=/usr/bin/sl-fortune
+Terminal=false
+Type=Application
+Icon=sl-fortune-tux
+Categories=Game;
+StartupNotify=false
