@@ -1,5 +1,5 @@
 #!/bin/sh
-# sl-fortune 0.1 "Slack Fortune"
+# sl-fortune 0.11 "Slack Fortune"
 # Copyright (c) 2021 David Ferrone (zapwai at gmail dot com)
 # Under the GPL2 license, freely distributed this may be.
 # Requires libnotify and bsd-games (/usr/games/fortune).
@@ -30,11 +30,10 @@ print_usage(){
     echo "tux, bob, slk    change the icon (root permission required)"
     echo
 }
-
+# Bob WANTS YOU to ease the transmission of slack into your mind, body, and soul
 print_thxbob(){
     echo 'J.R. "Bob" Dobbs is a trademark of The SubGenius Foundation, Inc.'
     echo 'http://www.subgenius.com'
-# Bob WANTS YOU to ease the transmission of slack into your mind, body, and soul. 
 }
 
 if [ $# -gt 1 ]; then
@@ -47,6 +46,18 @@ elif [ $# = 0 ]; then
 else
     case "$1" in
 	-i|--install)
+	    if [ $EUID -eq 0 ]; then
+		echo "Do not autostart as root."
+		exit 1
+	    fi
+	    if [ ! -d "/home/$USER/.config/autostart" ]; then
+		if [ -f "/home/$USER/.config/autostart" ]; then
+		    mv /home/$USER/.config/autostart \
+		       /home/$USER/.config/autostart.bak
+		fi
+		mkdir /home/$USER/.config/autostart
+	    fi
+	    
 	    cp /usr/share/applications/sl-fortune.desktop \
 	       /home/$USER/.config/autostart
 	    cd /home/$USER/.config/autostart
@@ -54,6 +65,10 @@ else
 		> tmpfile && mv tmpfile sl-fortune.desktop
 	    ;;
 	bob|tux|slk)
+	    if [ $EUID -ne 0 ]; then
+		echo "Must be root to alter icon settings globally."
+		exit 1
+	    fi
 	    if [ $1 = "bob" ]; then
 		print_thxbob
 	    fi
